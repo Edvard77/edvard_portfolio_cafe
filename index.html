@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sensory Atelier | Award-Winning Specialty Coffee</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #33231d;
+    --secondary: #725a38;
+    --surface: #fdf9f5;
+    --surface-low: #f7f3ef;
+    --surface-container: #f1ede9;
+    --surface-container-high: #ebe7e4;
+    --surface-dim: #ddd9d6;
+    --outline: #817471;
+    --outline-variant: #d3c3bf;
+    --on-surface: #1c1c19;
+    --on-surface-variant: #4f4441;
+    --primary-fixed: #fadcd3;
+    --secondary-container: #fcdaaf;
+  }
+
+  html { font-size: 16px; }
+  body { background: var(--surface); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--on-surface); overflow-x: hidden; }
+  .font-headline { font-family: 'Noto Serif', serif; }
+
+  /* NAV */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(253,249,245,0.72); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(209,195,191,0.3); transition: all 0.4s ease; }
+  nav.scrolled { background: rgba(253,249,245,0.95); box-shadow: 0 1px 24px rgba(51,35,29,0.08); }
+  .nav-inner { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 3rem; max-width: 1600px; margin: 0 auto; }
+  .nav-logo { font-family: 'Noto Serif', serif; font-size: 1.35rem; font-weight: 600; color: var(--primary); text-decoration: none; letter-spacing: -0.02em; }
+  .nav-links { display: flex; align-items: center; gap: 3rem; list-style: none; }
+  .nav-links a { font-size: 0.82rem; letter-spacing: 0.06em; color: var(--on-surface-variant); text-decoration: none; position: relative; transition: color 0.3s; }
+  .nav-links a::after { content: ''; position: absolute; bottom: -3px; left: 0; right: 0; height: 1px; background: var(--primary); transform: scaleX(0); transform-origin: left; transition: transform 0.35s ease; }
+  .nav-links a:hover { color: var(--primary); }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* HERO */
+  .hero { min-height: 100vh; padding: 8rem 3rem 5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; max-width: 1600px; margin: 0 auto; position: relative; }
+  .hero-left { position: relative; opacity: 0; transform: translateY(40px); animation: fadeUp 1s ease 0.2s forwards; }
+  .hero-image-main { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 1.5rem; display: block; transition: transform 0.8s ease; }
+  .hero-image-main:hover { transform: scale(1.015); }
+  .hero-badge { position: absolute; top: -1.5rem; right: -1.5rem; width: 7rem; height: 7rem; border-radius: 50%; background: var(--secondary-container); display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem; box-shadow: 0 8px 32px rgba(51,35,29,0.12); }
+  .hero-badge span { font-family: 'Noto Serif', serif; font-style: italic; font-size: 0.7rem; line-height: 1.4; color: var(--primary); }
+  .hero-right { display: flex; flex-direction: column; gap: 2.5rem; opacity: 0; transform: translateY(40px); animation: fadeUp 1s ease 0.45s forwards; }
+  .hero-eyebrow { font-size: 0.72rem; letter-spacing: 0.22em; color: var(--secondary); font-weight: 600; font-variant: all-small-caps; }
+  .hero-title { font-family: 'Noto Serif', serif; font-size: clamp(3.5rem, 6vw, 7rem); line-height: 0.92; color: var(--primary); letter-spacing: -0.02em; }
+  .hero-title em { font-style: italic; font-weight: 400; }
+  .hero-desc { color: var(--on-surface-variant); font-size: 1.05rem; line-height: 1.8; max-width: 36ch; font-weight: 300; }
+  .hero-actions { display: flex; align-items: center; gap: 2rem; }
+  .btn-primary { background: var(--primary); color: #fff; border: none; padding: 1rem 2.5rem; border-radius: 999px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.3s, transform 0.15s, box-shadow 0.3s; }
+  .btn-primary:hover { opacity: 0.85; box-shadow: 0 8px 24px rgba(51,35,29,0.25); transform: translateY(-1px); }
+  .btn-ghost { background: none; border: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.88rem; color: var(--on-surface-variant); cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: color 0.3s; text-decoration: none; }
+  .btn-ghost:hover { color: var(--primary); }
+  .btn-ghost .arrow { display: inline-block; transition: transform 0.3s; }
+  .btn-ghost:hover .arrow { transform: translateX(4px); }
+  .hero-stats { display: flex; gap: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--outline-variant); }
+  .hero-stat-num { font-family: 'Noto Serif', serif; font-size: 1.8rem; font-weight: 700; color: var(--primary); display: block; line-height: 1; }
+  .hero-stat-label { font-size: 0.7rem; letter-spacing: 0.12em; color: var(--on-surface-variant); font-variant: all-small-caps; margin-top: 0.3rem; display: block; }
+
+  /* MARQUEE */
+  .marquee-strip { background: var(--primary); color: var(--primary-fixed); padding: 1rem 0; overflow: hidden; }
+  .marquee-track { display: flex; width: max-content; animation: marquee 28s linear infinite; }
+  .marquee-item { display: flex; align-items: center; gap: 2rem; padding: 0 2rem; white-space: nowrap; font-family: 'Noto Serif', serif; font-style: italic; font-size: 0.92rem; letter-spacing: 0.04em; }
+  .marquee-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary-fixed); opacity: 0.5; flex-shrink: 0; }
+
+  /* STORY */
+  .story { padding: 8rem 3rem; background: var(--surface-low); overflow: hidden; }
+  .story-inner { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6rem; align-items: center; }
+  .story-img-wrap { position: relative; }
+  .story-img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 1.5rem; display: block; transition: transform 0.7s ease; }
+  .story-img:hover { transform: scale(1.01); }
+  .story-badge { position: absolute; top: -2rem; right: -2rem; background: var(--surface); border: 1px solid var(--outline-variant); border-radius: 1rem; padding: 1.2rem 1.5rem; box-shadow: 0 8px 32px rgba(51,35,29,0.1); }
+  .story-badge p { font-family: 'Noto Serif', serif; font-style: italic; color: var(--primary); font-size: 1.1rem; text-align: center; }
+  .story-badge small { display: block; font-size: 0.65rem; letter-spacing: 0.15em; color: var(--on-surface-variant); font-variant: all-small-caps; text-align: center; margin-top: 0.2rem; }
+  .story-content { display: flex; flex-direction: column; gap: 2rem; }
+  .section-label { font-size: 0.7rem; letter-spacing: 0.22em; color: var(--secondary); font-weight: 600; font-variant: all-small-caps; }
+  .section-title { font-family: 'Noto Serif', serif; font-size: clamp(2.8rem, 4.5vw, 5rem); line-height: 1.0; color: var(--primary); letter-spacing: -0.02em; }
+  .story-text { color: var(--on-surface-variant); font-size: 1rem; line-height: 1.85; font-weight: 300; display: flex; flex-direction: column; gap: 1.2rem; max-width: 42ch; }
+  .story-link { display: inline-flex; align-items: center; gap: 1rem; cursor: pointer; text-decoration: none; }
+  .story-link-line { width: 3rem; height: 1px; background: var(--primary); transition: width 0.5s ease; }
+  .story-link:hover .story-link-line { width: 5rem; }
+  .story-link span { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.18em; font-variant: all-small-caps; color: var(--primary); }
+  .story-values { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 0.5rem; }
+  .story-val { background: var(--surface); border: 1px solid var(--outline-variant); border-radius: 0.75rem; padding: 1rem 1.2rem; transition: box-shadow 0.3s, transform 0.3s; }
+  .story-val:hover { box-shadow: 0 6px 20px rgba(51,35,29,0.08); transform: translateY(-2px); }
+  .story-val-icon { font-size: 1.2rem; margin-bottom: 0.5rem; display: block; }
+  .story-val-name { font-size: 0.82rem; font-weight: 600; color: var(--primary); margin-bottom: 0.2rem; }
+  .story-val-desc { font-size: 0.72rem; color: var(--on-surface-variant); line-height: 1.5; }
+
+  /* MENU */
+  .menu { padding: 8rem 3rem; background: var(--surface); }
+  .menu-inner { max-width: 1200px; margin: 0 auto; }
+  .menu-header { text-align: center; margin-bottom: 5rem; }
+  .menu-header h2 { font-family: 'Noto Serif', serif; font-size: clamp(2.8rem, 5vw, 5rem); color: var(--primary); letter-spacing: -0.02em; margin-bottom: 0.8rem; }
+  .menu-header p { font-size: 0.72rem; letter-spacing: 0.22em; color: var(--on-surface-variant); font-variant: all-small-caps; opacity: 0.7; }
+  .menu-tabs { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 4rem; background: var(--surface-container); border-radius: 999px; padding: 0.35rem; width: max-content; margin-left: auto; margin-right: auto; }
+  .menu-tab { padding: 0.6rem 1.8rem; border-radius: 999px; border: none; background: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.82rem; color: var(--on-surface-variant); cursor: pointer; transition: all 0.3s; }
+  .menu-tab.active { background: var(--primary); color: #fff; }
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 5rem; }
+  .menu-col-title { font-family: 'Noto Serif', serif; font-size: 1.6rem; font-style: italic; color: var(--primary); border-bottom: 1px solid rgba(209,195,191,0.3); padding-bottom: 1rem; margin-bottom: 2.5rem; }
+  .menu-item { padding: 1.5rem 0; border-bottom: 1px solid rgba(209,195,191,0.2); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; transition: padding-left 0.3s; cursor: default; }
+  .menu-item:hover { padding-left: 0.75rem; }
+  .menu-item:hover .menu-item-name { color: var(--secondary); }
+  .menu-item-info { flex: 1; }
+  .menu-item-name { font-size: 1rem; font-weight: 500; color: var(--on-surface); margin-bottom: 0.35rem; transition: color 0.3s; }
+  .menu-item-desc { font-size: 0.68rem; color: var(--on-surface-variant); letter-spacing: 0.1em; font-variant: all-small-caps; line-height: 1.5; }
+  .menu-item-price { font-family: 'Noto Serif', serif; font-style: italic; color: var(--on-surface-variant); font-size: 1rem; white-space: nowrap; flex-shrink: 0; }
+  .menu-side-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 1rem; margin-bottom: 1.5rem; display: block; }
+  .menu-side-note { font-size: 0.85rem; color: var(--on-surface-variant); line-height: 1.7; font-weight: 300; }
+
+  /* TESTIMONIAL */
+  .testimonial { padding: 6rem 3rem; background: var(--primary); text-align: center; position: relative; overflow: hidden; }
+  .testimonial::before { content: '\201C'; position: absolute; top: -2rem; left: 50%; transform: translateX(-50%); font-family: 'Noto Serif', serif; font-size: 20rem; color: rgba(250,220,211,0.06); line-height: 1; pointer-events: none; }
+  .testimonial-text { font-family: 'Noto Serif', serif; font-size: clamp(1.5rem, 3vw, 2.5rem); font-style: italic; color: var(--primary-fixed); line-height: 1.5; max-width: 60ch; margin: 0 auto 2rem; position: relative; z-index: 1; }
+  .testimonial-author { font-size: 0.72rem; letter-spacing: 0.18em; color: rgba(250,220,211,0.6); font-variant: all-small-caps; position: relative; z-index: 1; }
+  .testimonial-dots { display: flex; justify-content: center; gap: 0.5rem; margin-top: 2.5rem; position: relative; z-index: 1; }
+  .testimonial-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(250,220,211,0.3); cursor: pointer; transition: all 0.3s; border: none; padding: 0; }
+  .testimonial-dot.active { width: 24px; border-radius: 3px; background: var(--primary-fixed); }
+
+  /* FIND US */
+  .find-us { padding: 8rem 3rem; background: var(--surface-container); }
+  .find-us-inner { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: start; }
+  .find-us-content { display: flex; flex-direction: column; gap: 3rem; }
+  .find-us-title { font-family: 'Noto Serif', serif; font-size: clamp(2.5rem, 4vw, 4rem); color: var(--primary); letter-spacing: -0.02em; margin-bottom: 1rem; }
+  .find-us-subtitle { color: var(--on-surface-variant); font-size: 1rem; line-height: 1.8; font-weight: 300; max-width: 34ch; }
+  .find-us-details { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+  .detail-label { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--primary); font-weight: 700; font-variant: all-small-caps; margin-bottom: 0.7rem; display: block; }
+  .detail-text { color: var(--on-surface-variant); font-size: 0.92rem; line-height: 1.7; }
+  .email-form { display: flex; align-items: center; background: var(--surface-container-high); border-radius: 999px; padding: 0.4rem 0.4rem 0.4rem 1.5rem; max-width: 24rem; border: 1px solid var(--outline-variant); transition: border-color 0.3s, box-shadow 0.3s; }
+  .email-form:focus-within { border-color: var(--outline); box-shadow: 0 0 0 3px rgba(114,90,56,0.12); }
+  .email-input { flex: 1; background: none; border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.85rem; color: var(--primary); padding: 0.5rem 0; }
+  .email-input::placeholder { color: var(--on-surface-variant); opacity: 0.5; }
+  .email-btn { background: var(--primary); color: #fff; border: none; border-radius: 999px; width: 2.4rem; height: 2.4rem; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.3s; }
+  .email-btn:hover { opacity: 0.8; }
+  .find-us-map { position: relative; border-radius: 1.5rem; overflow: hidden; height: 560px; background: var(--surface-dim); box-shadow: 0 20px 60px rgba(51,35,29,0.12); }
+  .find-us-map img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) brightness(1.05); mix-blend-mode: multiply; }
+  .map-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .map-pin-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--primary); border: 3px solid var(--surface); box-shadow: 0 2px 12px rgba(51,35,29,0.3); }
+  .map-pin-pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--primary); opacity: 0.4; animation: pulse 2s ease-in-out infinite; }
+  .map-card { position: absolute; bottom: 2rem; left: 2rem; background: rgba(253,249,245,0.95); backdrop-filter: blur(12px); border-radius: 1rem; padding: 1.2rem 1.5rem; border: 1px solid var(--outline-variant); }
+  .map-card-name { font-family: 'Noto Serif', serif; font-style: italic; color: var(--primary); font-size: 1rem; margin-bottom: 0.2rem; }
+  .map-card-addr { font-size: 0.72rem; color: var(--on-surface-variant); font-variant: all-small-caps; letter-spacing: 0.08em; }
+
+  /* FOOTER */
+  footer { background: var(--surface-low); border-top: 1px solid var(--outline-variant); position: relative; overflow: hidden; padding: 5rem 3rem 3rem; }
+  .footer-inner { max-width: 1300px; margin: 0 auto; }
+  .footer-top { display: grid; grid-template-columns: 1fr 2fr; gap: 5rem; padding-bottom: 4rem; border-bottom: 1px solid var(--outline-variant); margin-bottom: 2.5rem; }
+  .footer-logo { font-family: 'Noto Serif', serif; font-size: 1.4rem; font-weight: 600; color: var(--primary); letter-spacing: -0.02em; display: block; margin-bottom: 1rem; }
+  .footer-tagline { font-size: 0.82rem; color: var(--on-surface-variant); line-height: 1.7; max-width: 22ch; font-weight: 300; }
+  .footer-links-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; }
+  .footer-col-title { font-size: 0.65rem; letter-spacing: 0.2em; font-variant: all-small-caps; font-weight: 700; color: var(--primary); margin-bottom: 1.2rem; display: block; }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+  .footer-col a { font-size: 0.85rem; color: var(--on-surface-variant); text-decoration: none; transition: color 0.3s; cursor: pointer; }
+  .footer-col a:hover { color: var(--primary); }
+  .footer-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .footer-copy { font-size: 0.75rem; color: var(--on-surface-variant); }
+  .footer-wordmark { font-family: 'Noto Serif', serif; font-size: 8vw; color: rgba(51,35,29,0.05); position: absolute; bottom: -1.5rem; left: 0; right: 0; text-align: center; pointer-events: none; letter-spacing: -0.03em; font-weight: 700; text-transform: uppercase; }
+
+  /* MODAL */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(28,28,25,0.6); z-index: 500; backdrop-filter: blur(6px); align-items: center; justify-content: center; }
+  .modal-backdrop.open { display: flex; }
+  .modal-box { background: var(--surface); border-radius: 1.5rem; max-width: 660px; width: 90%; padding: 3rem; position: relative; max-height: 85vh; overflow-y: auto; }
+  .modal-close { position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; font-size: 1.4rem; color: var(--on-surface-variant); cursor: pointer; line-height: 1; transition: color 0.2s; }
+  .modal-close:hover { color: var(--primary); }
+  .modal-label { font-size: 0.68rem; letter-spacing: 0.2em; font-variant: all-small-caps; color: var(--secondary); font-weight: 600; margin-bottom: 1.2rem; display: block; }
+  .modal-title { font-family: 'Noto Serif', serif; font-size: 2.2rem; color: var(--primary); letter-spacing: -0.02em; margin-bottom: 1.8rem; line-height: 1.1; }
+  .modal-body p { color: var(--on-surface-variant); font-size: 0.95rem; line-height: 1.85; font-weight: 300; margin-bottom: 1.2rem; }
+  .modal-divider { height: 1px; background: var(--outline-variant); margin: 1.8rem 0; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.8); opacity: 0; } }
+
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  /* perf: promote animated layers */
+  .hero-left, .hero-right, .marquee-track { will-change: transform; }
+  .cursor-dot, .cursor-ring { will-change: left, top; }
+  .find-us-map { contain: layout style; }
+
+  /* Leaflet customisation — match site palette */
+  .leaflet-container { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .leaflet-popup-content-wrapper { border-radius: 0.75rem !important; box-shadow: 0 8px 32px rgba(51,35,29,0.14) !important; border: 1px solid var(--outline-variant); }
+  .leaflet-popup-tip { background: #fff; }
+  .leaflet-popup-content { font-size: 0.85rem; color: var(--on-surface); line-height: 1.6; margin: 0.75rem 1rem !important; }
+  .leaflet-popup-content strong { font-family: 'Noto Serif', serif; font-style: italic; color: var(--primary); }
+  .leaflet-control-zoom a { color: var(--primary) !important; border-color: var(--outline-variant) !important; }
+  .leaflet-control-attribution { font-size: 10px; opacity: 0.5; }
+
+  /* cursor */
+  .cursor-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); position: fixed; pointer-events: none; z-index: 9999; mix-blend-mode: multiply; }
+  .cursor-ring { width: 28px; height: 28px; border: 1px solid var(--primary); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9998; opacity: 0.5; transition: width 0.3s, height 0.3s, opacity 0.3s; mix-blend-mode: multiply; }
+
+  @media (hover: none) and (pointer: coarse) {
+    .cursor-dot, .cursor-ring { display: none !important; }
+    body, a, button, [style*="cursor:pointer"], [style*="cursor: pointer"], .story-val, .menu-tab, .menu-item, .btn-primary, .btn-ghost, .story-link, .email-btn, .modal-close, .testimonial-dot, .footer-col a { cursor: auto; }
+    a, button { cursor: pointer; }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .nav-links { display: none; }
+    .nav-inner { padding: 1.2rem 1.5rem; }
+    .hero { grid-template-columns: 1fr; padding: 7rem 1.5rem 4rem; gap: 3rem; }
+    .story-inner { grid-template-columns: 1fr; gap: 3rem; }
+    .menu-grid { grid-template-columns: 1fr; gap: 3rem; }
+    .find-us-inner { grid-template-columns: 1fr; }
+    .find-us-map { height: 380px; }
+    .footer-top { grid-template-columns: 1fr; gap: 3rem; }
+    .footer-links-group { grid-template-columns: 1fr 1fr; }
+    .hero-stats { flex-wrap: wrap; }
+    .story-values { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .hero { padding: 6rem 1.2rem 3rem; gap: 2rem; }
+    .hero-title { font-size: clamp(2.8rem, 13vw, 4rem); }
+    .hero-badge { width: 5.5rem; height: 5.5rem; top: -1rem; right: -0.5rem; }
+    .hero-actions { flex-direction: column; align-items: flex-start; gap: 1.2rem; }
+    .hero-stats { gap: 1.5rem; }
+    .story { padding: 5rem 1.2rem; }
+    .story-badge { top: -1rem; right: -0.5rem; }
+    .section-title { font-size: clamp(2.2rem, 10vw, 3rem); }
+    .story-values { gap: 0.8rem; }
+    .menu { padding: 5rem 1.2rem; }
+    .menu-header { margin-bottom: 3rem; }
+    .menu-tabs { width: auto; }
+    .menu-tab { padding: 0.55rem 1.2rem; font-size: 0.78rem; }
+    .testimonial { padding: 4rem 1.5rem; }
+    .testimonial-text { font-size: clamp(1.2rem, 5vw, 1.8rem); }
+    .find-us { padding: 5rem 1.2rem; }
+    .find-us-details { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .find-us-map { height: 300px; }
+    .email-form { max-width: 100%; }
+    footer { padding: 4rem 1.2rem 2.5rem; }
+    .footer-links-group { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .footer-bottom { flex-direction: column; gap: 0.5rem; text-align: center; }
+    .footer-wordmark { font-size: 14vw; }
+    .modal-box { padding: 2rem 1.5rem; }
+    .modal-title { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- MODAL: Story -->
+<div class="modal-backdrop" id="storyModal" onclick="closeModal('storyModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal('storyModal')">✕</button>
+    <span class="modal-label">Our Philosophy</span>
+    <h2 class="modal-title font-headline">The Full Narrative</h2>
+    <div class="modal-body">
+      <p>Sensory Atelier was born in the winter of 2018, in a narrow side street of Copenhagen's Nørrebro district. The founders — a former roaster from Addis Ababa and a product designer from Oslo — shared a single conviction: that the act of drinking coffee deserved the same intention as any craft discipline.</p>
+      <p>We source exclusively from small-scale farms where we know the farmers by name. Our relationships in the Yirgacheffe region of Ethiopia span three harvests. In Colombia's Huila department, we have been working with the same cooperative since day one.</p>
+      <div class="modal-divider"></div>
+      <p>The space itself took two years to build. Every material was chosen with deliberate restraint — raw clay walls, reclaimed Danish oak, limestone counters. No music plays during morning hours. The silence is intentional: it lets the aroma speak first.</p>
+      <p>Our menu changes with the seasons. We believe a menu that never evolves is a menu that stopped listening. Every item — from the Origami Pour Over to the Wild Herb Tart — is reconsidered quarterly alongside our producers and kitchen collaborators.</p>
+      <div class="modal-divider"></div>
+      <p style="font-family:'Noto Serif',serif;font-style:italic;font-size:1.05rem;color:var(--primary);">We are not a café. We are a practice.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Origins -->
+<div class="modal-backdrop" id="originsModal" onclick="closeModal('originsModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal('originsModal')">✕</button>
+    <span class="modal-label">Single Origin</span>
+    <h2 class="modal-title font-headline">Where Our Beans Come From</h2>
+    <div class="modal-body">
+      <p><strong style="color:var(--primary);font-weight:600;">Ethiopia — Yirgacheffe</strong><br/>Washed process. Notes of jasmine, bergamot, and lemon peel. Altitude: 1,900–2,200m. Harvested November–January.</p>
+      <div class="modal-divider"></div>
+      <p><strong style="color:var(--primary);font-weight:600;">Colombia — Huila</strong><br/>Natural process. Notes of dark cherry, cacao, and brown sugar. Altitude: 1,600–1,900m. Harvested April–June.</p>
+      <div class="modal-divider"></div>
+      <p><strong style="color:var(--primary);font-weight:600;">Rwanda — Nyamasheke</strong><br/>Honey process. Notes of stonefruit, oolong tea, and caramel. Altitude: 1,800–2,100m. Harvested March–May.</p>
+      <div class="modal-divider"></div>
+      <p>All farms are visited at least once per harvest cycle. We pay a minimum 40% above Fair Trade price and invest in processing infrastructure where needed.</p>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo font-headline">Sensory Atelier</a>
+    <ul class="nav-links">
+      <li><a href="#story">Story</a></li>
+      <li><a href="#menu">Menu</a></li>
+      <li><a href="#find-us">Find Us</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <img
+      src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&q=90&auto=format&fit=crop"
+      alt="Barista pouring latte art"
+      class="hero-image-main" loading="eager"
+    />
+    <div class="hero-badge">
+      <span>Est.<br/>2018</span>
+    </div>
+  </div>
+  <div class="hero-right">
+    <span class="hero-eyebrow">Award-Winning Specialty Coffee</span>
+    <h1 class="hero-title font-headline">The Craft<br/><em>of Silence</em></h1>
+    <p class="hero-desc">Where the aroma of single-origin beans meets the quietude of intentional design. An atelier for the senses.</p>
+    <div class="hero-actions">
+      <a href="#menu" class="btn-primary">Explore Menu</a>
+      <a href="#story" class="btn-ghost">Our Story <span class="arrow">→</span></a>
+    </div>
+    <div class="hero-stats">
+      <div><span class="hero-stat-num">12+</span><span class="hero-stat-label">Origins Sourced</span></div>
+      <div><span class="hero-stat-num">4</span><span class="hero-stat-label">Barista Awards</span></div>
+      <div><span class="hero-stat-num">∞</span><span class="hero-stat-label">Moments of Stillness</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-strip">
+  <div class="marquee-track">
+    <div class="marquee-item">Single-Origin Brews <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Ethiopia · Colombia · Rwanda <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Award-Winning Baristas <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Intentional Design <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Seasonal Provisions <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Slow Living Philosophy <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Single-Origin Brews <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Ethiopia · Colombia · Rwanda <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Award-Winning Baristas <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Intentional Design <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Seasonal Provisions <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Slow Living Philosophy <span class="marquee-dot"></span></div>
+  </div>
+</div>
+
+<!-- STORY -->
+<section class="story" id="story">
+  <div class="story-inner">
+    <div class="story-img-wrap reveal">
+      <img
+        src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=900&q=90&auto=format&fit=crop"
+        alt="Coffee roasting"
+        class="story-img" loading="lazy"
+      />
+      <div class="story-badge"><p>Est. 2018</p><small>Copenhagen, DK</small></div>
+    </div>
+    <div class="story-content">
+      <span class="section-label reveal">Our Philosophy</span>
+      <h2 class="section-title font-headline reveal reveal-delay-1">Beyond<br/>the Bean</h2>
+      <div class="story-text reveal reveal-delay-2">
+        <p>Founded on the belief that a morning ritual should be an act of meditation. We source our beans from small-scale farms in Ethiopia and Colombia, ensuring every cup tells a story of heritage.</p>
+        <p>Our space is an extension of our craft — a sanctuary built from raw clay, reclaimed oak, and the soft hum of communal appreciation.</p>
+      </div>
+      <div class="story-values reveal reveal-delay-3">
+        <div class="story-val" style="cursor:pointer" onclick="openModal('originsModal')">
+          <span class="story-val-icon">◎</span>
+          <div class="story-val-name">Single Origin ↗</div>
+          <div class="story-val-desc">Direct trade farms — tap to see our origins</div>
+        </div>
+        <div class="story-val">
+          <span class="story-val-icon">◈</span>
+          <div class="story-val-name">Slow Roast</div>
+          <div class="story-val-desc">In-house drum roasting at low temperature, 18 minutes</div>
+        </div>
+        <div class="story-val">
+          <span class="story-val-icon">◇</span>
+          <div class="story-val-name">Zero Waste</div>
+          <div class="story-val-desc">All grounds composted, packaging fully biodegradable</div>
+        </div>
+        <div class="story-val">
+          <span class="story-val-icon">◉</span>
+          <div class="story-val-name">Seasonal Menu</div>
+          <div class="story-val-desc">Provisions change with the harvest — honest and fresh</div>
+        </div>
+      </div>
+      <a class="story-link reveal reveal-delay-4" onclick="openModal('storyModal')" style="cursor:pointer">
+        <div class="story-link-line"></div>
+        <span>Read Full Narrative</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- MENU -->
+<section class="menu" id="menu">
+  <div class="menu-inner">
+    <div class="menu-header reveal">
+      <h2 class="font-headline">Curated Selections</h2>
+      <p>A Seasonal Composition</p>
+    </div>
+    <div class="menu-tabs reveal">
+      <button class="menu-tab active" onclick="switchTab(this,'brews')">Brews</button>
+      <button class="menu-tab" onclick="switchTab(this,'food')">Provisions</button>
+    </div>
+
+    <div id="tabBrews" class="menu-grid">
+      <div class="reveal">
+        <h3 class="menu-col-title">Artisanal Brews</h3>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Origami Pour Over</div><div class="menu-item-desc">Single origin · washed process · jasmine &amp; stonefruit</div></div><span class="menu-item-price">9.00</span></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Atelier Cortado</div><div class="menu-item-desc">Double ristretto · house-made oat crema</div></div><span class="menu-item-price">5.50</span></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Smoked Espresso</div><div class="menu-item-desc">Hickory infused · dark chocolate profile</div></div><span class="menu-item-price">6.00</span></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Cold Brew Negroni</div><div class="menu-item-desc">18-hour steep · orange bitters · cedar wood chip</div></div><span class="menu-item-price">8.50</span></div>
+      </div>
+      <div class="reveal reveal-delay-2" style="align-self:start">
+        <img class="menu-side-img" src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=700&q=85&auto=format&fit=crop" alt="Espresso close-up" loading="lazy"/>
+        <p class="menu-side-note">All espresso-based drinks are prepared with our seasonal house blend, roasted on-site every Tuesday and Friday morning.</p>
+      </div>
+    </div>
+
+    <div id="tabFood" class="menu-grid" style="display:none">
+      <div class="reveal">
+        <h3 class="menu-col-title">Small Provisions</h3>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Sourdough &amp; Salted Crema</div><div class="menu-item-desc">48-hour fermented · aged butter · maldon salt</div></div><span class="menu-item-price">12.00</span></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Yuzu Madeleine</div><div class="menu-item-desc">Warm citrus glaze · organic honey</div></div><span class="menu-item-price">4.50</span></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Wild Herb Tart</div><div class="menu-item-desc">Goat curd · seasonal forage · pine nut crust</div></div><span class="menu-item-price">14.00</span></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Brown Butter Financier</div><div class="menu-item-desc">Hazelnut flour · seasonal preserve · fleur de sel</div></div><span class="menu-item-price">5.00</span></div>
+      </div>
+      <div class="reveal reveal-delay-2" style="align-self:start">
+        <img class="menu-side-img" src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=700&q=85&auto=format&fit=crop" alt="Pastry provisions" loading="lazy"/>
+        <p class="menu-side-note">Provisions are baked fresh each morning. Seasonal menu changes quarterly with the harvest.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<div class="testimonial">
+  <p class="testimonial-text" id="testimonialText">"The first cup silenced three years of city noise. I haven't found anywhere else like it."</p>
+  <span class="testimonial-author" id="testimonialAuthor">— Marta L., Copenhagen</span>
+  <div class="testimonial-dots">
+    <button class="testimonial-dot active" onclick="switchTestimonial(0)"></button>
+    <button class="testimonial-dot" onclick="switchTestimonial(1)"></button>
+    <button class="testimonial-dot" onclick="switchTestimonial(2)"></button>
+  </div>
+</div>
+
+<!-- FIND US -->
+<section class="find-us" id="find-us">
+  <div class="find-us-inner">
+    <div class="find-us-content">
+      <div class="reveal">
+        <span class="section-label" style="display:block;margin-bottom:1rem;">Come Find Us</span>
+        <h2 class="find-us-title font-headline">Visit the Atelier</h2>
+        <p class="find-us-subtitle">We welcome guests for walk-ins and curated tasting sessions throughout the week.</p>
+      </div>
+      <div class="find-us-details reveal reveal-delay-1">
+        <div><span class="detail-label">Location</span><p class="detail-text">42 Artisan Way<br/>Copenhagen, DK</p></div>
+        <div><span class="detail-label">Hours</span><p class="detail-text">Mon — Fri: 07:00 — 18:00<br/>Sat — Sun: 09:00 — 19:00</p></div>
+        <div><span class="detail-label">Contact</span><p class="detail-text">hello@sensoryatelier.dk<br/>+45 33 12 34 56</p></div>
+        <div><span class="detail-label">Getting Here</span><p class="detail-text">5 min walk from<br/>Nørreport Station</p></div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <p style="font-size:0.72rem;letter-spacing:0.12em;font-variant:all-small-caps;color:var(--secondary);margin-bottom:0.8rem;font-weight:600;">Join the Sensory Journal</p>
+        <div class="email-form">
+          <input class="email-input" id="emailInput" type="email" placeholder="your@email.com" />
+          <button class="email-btn" onclick="handleEmail()">→</button>
+        </div>
+      </div>
+    </div>
+    <div class="find-us-map reveal reveal-delay-2">
+      <div id="leafletMap" style="width:100%;height:100%;border-radius:1.5rem;"></div>
+      <div class="map-card">
+        <p class="map-card-name font-headline">Sensory Atelier</p>
+        <p class="map-card-addr">42 Artisan Way · Copenhagen</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <span class="footer-logo font-headline">Sensory Atelier</span>
+        <p class="footer-tagline">Crafted for the intentional palate. An atelier for the senses.</p>
+      </div>
+      <div class="footer-links-group">
+        <div class="footer-col">
+          <span class="footer-col-title">Navigate</span>
+          <ul>
+            <li><a href="#story">Our Story</a></li>
+            <li><a href="#menu">Menu</a></li>
+            <li><a href="#find-us">Find Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <span class="footer-col-title">Experience</span>
+          <ul>
+            <li><a href="#menu">Tasting Menu</a></li>
+            <li><a href="#find-us">Plan Your Visit</a></li>
+            <li><a onclick="openModal('originsModal')">Our Origins</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <span class="footer-col-title">Connect</span>
+          <ul>
+            <li><a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="mailto:hello@sensoryatelier.dk">Press Enquiries</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 Sensory Atelier. All rights reserved.</p>
+    </div>
+  </div>
+  <div class="footer-wordmark font-headline">Sensory</div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  /* ── cursor (rAF loop, single handler) ── */
+  const dot=document.getElementById('cursorDot'), ring=document.getElementById('cursorRing');
+  let mx=0,my=0,rx=0,ry=0,rafPending=false;
+  document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; dot.style.transform=`translate(${mx-3}px,${my-3}px)`; },{passive:true});
+  dot.style.left=ring.style.left='0'; dot.style.top=ring.style.top='0';
+  dot.style.transform=ring.style.transform='translate(0,0)';
+  ring.style.left=ring.style.top='0';
+  (function anim(){ rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; ring.style.transform=`translate(${rx-14}px,${ry-14}px)`; requestAnimationFrame(anim); })();
+  document.querySelectorAll('a,button,.story-val').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ ring.style.width=ring.style.height='44px'; ring.style.opacity='0.22'; },{passive:true});
+    el.addEventListener('mouseleave',()=>{ ring.style.width=ring.style.height='28px'; ring.style.opacity='0.5'; },{passive:true});
+  });
+
+  /* ── nav scroll (throttled) ── */
+  const nav=document.getElementById('mainNav');
+  let ticking=false;
+  window.addEventListener('scroll',()=>{ if(!ticking){ requestAnimationFrame(()=>{ nav.classList.toggle('scrolled',window.scrollY>60); ticking=false; }); ticking=true; } },{passive:true});
+
+  /* ── scroll reveal (IntersectionObserver — zero scroll cost) ── */
+  const obs=new IntersectionObserver(entries=>entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); } }),{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+  /* ── testimonials ── */
+  const tms=[
+    {text:'"The first cup silenced three years of city noise. I haven\'t found anywhere else like it."',author:'— Marta L., Copenhagen'},
+    {text:'"A place that understands coffee is not a drink — it\'s a conversation between farmer and guest."',author:'— Thomas W., Berlin'},
+    {text:'"The smoked espresso rewired my entire morning ritual. I come twice a week, minimum."',author:'— Signe H., Malmö'}
+  ];
+  let curT=0;
+  const tEl=document.getElementById('testimonialText'),aEl=document.getElementById('testimonialAuthor');
+  tEl.style.transition=aEl.style.transition='opacity 0.35s';
+  function switchTestimonial(i){ curT=i; tEl.style.opacity=aEl.style.opacity='0'; setTimeout(()=>{ tEl.textContent=tms[i].text; aEl.textContent=tms[i].author; tEl.style.opacity=aEl.style.opacity='1'; },350); document.querySelectorAll('.testimonial-dot').forEach((d,j)=>d.classList.toggle('active',j===i)); }
+  setInterval(()=>switchTestimonial((curT+1)%3),5500);
+
+  /* ── menu tabs ── */
+  function switchTab(btn,s){ document.querySelectorAll('.menu-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); document.getElementById('tabBrews').style.display=s==='brews'?'grid':'none'; document.getElementById('tabFood').style.display=s==='food'?'grid':'none'; }
+
+  /* ── modal ── */
+  function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>{ m.classList.remove('open'); document.body.style.overflow=''; }); });
+
+  /* ── email ── */
+  function handleEmail(){ const i=document.getElementById('emailInput'); if(i.value&&i.value.includes('@')){ i.value=''; i.placeholder='Thank you — you\'re on the list.'; setTimeout(()=>{ i.placeholder='your@email.com'; },3000); } }
+
+  /* ── Leaflet map (lazy-init when section scrolls into view) ── */
+  let mapInited=false;
+  const mapObs=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting && !mapInited){
+      mapInited=true;
+      const LAT=55.6761, LNG=12.5683;
+      const map=L.map('leafletMap',{zoomControl:true,scrollWheelZoom:false,attributionControl:true}).setView([LAT,LNG],15);
+
+      /* Stamen-style tiles via CartoDB — no API key needed */
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains:'abcd', maxZoom:19
+      }).addTo(map);
+
+      /* Custom marker matching brand color */
+      const icon=L.divIcon({
+        html:`<div style="width:14px;height:14px;background:#33231d;border:3px solid #fdf9f5;border-radius:50%;box-shadow:0 2px 12px rgba(51,35,29,.35);position:relative;"><div style="position:absolute;inset:-7px;border:2px solid #33231d;border-radius:50%;opacity:.35;animation:pulse 2s ease-in-out infinite;"></div></div>`,
+        className:'',iconSize:[14,14],iconAnchor:[7,7],popupAnchor:[0,-12]
+      });
+      L.marker([LAT,LNG],{icon}).addTo(map)
+        .bindPopup('<strong>Sensory Atelier</strong><br/>42 Artisan Way · Copenhagen')
+        .openPopup();
+
+      /* Enable scroll wheel zoom only when map is focused */
+      map.getContainer().addEventListener('click',()=>map.scrollWheelZoom.enable());
+      map.getContainer().addEventListener('mouseleave',()=>map.scrollWheelZoom.disable());
+    }
+  },{threshold:0.1});
+  mapObs.observe(document.getElementById('leafletMap'));
+</script>
+</body>
+</html>
